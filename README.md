@@ -167,3 +167,5 @@ Uygulamanın iş mantığı burada bulunur.
 ## Özet
 
 LaunchCanvas, mağaza ekran görüntüsü hazırlama sürecini tekli ve toplu üretim akışlarıyla kolaylaştıran, cihaz profillerine dayalı çalışan ve statik çıktı üreten bir Next.js projesidir. Amaç, uygulama tanıtım görsellerini daha az tekrar eden iş yüküyle ve daha tutarlı bir görsel sistemle hazırlamaktır.
+
+thx for /Yesno-Labs/app-store-screenshot-generator

@@ -3,16 +3,16 @@
 @tailwind utilities;
 
 :root {
-  --background: #f4efe6;
-  --foreground: #171412;
-  --surface: rgba(255, 252, 247, 0.82);
-  --surface-strong: #fffaf2;
-  --line: rgba(23, 20, 18, 0.12);
-  --muted: #6f645d;
-  --accent: #ff6b35;
-  --accent-deep: #111827;
-  --accent-soft: rgba(255, 107, 53, 0.12);
-  --shadow: 0 18px 50px rgba(39, 30, 22, 0.08);
+  --background: #f6f0e8;
+  --foreground: #221c18;
+  --surface: rgba(255, 250, 244, 0.84);
+  --surface-strong: #fff8f2;
+  --line: rgba(71, 55, 46, 0.12);
+  --muted: #7c6d63;
+  --accent: #c46e4d;
+  --accent-deep: #2c221d;
+  --accent-soft: rgba(196, 110, 77, 0.14);
+  --shadow: 0 18px 50px rgba(54, 38, 30, 0.09);
 
   --font-primary: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI",
     sans-serif;
@@ -35,9 +35,9 @@ body {
   min-height: 100vh;
   color: var(--foreground);
   background:
-    radial-gradient(circle at top left, rgba(255, 107, 53, 0.16), transparent 28%),
-    radial-gradient(circle at top right, rgba(9, 140, 122, 0.12), transparent 24%),
-    linear-gradient(180deg, #f9f4ec 0%, #f4efe6 45%, #efe8dd 100%);
+    radial-gradient(circle at top left, rgba(196, 110, 77, 0.16), transparent 28%),
+    radial-gradient(circle at top right, rgba(132, 159, 145, 0.14), transparent 24%),
+    linear-gradient(180deg, #faf5ef 0%, #f6f0e8 45%, #efe6dc 100%);
   font-family: var(--font-primary);
   line-height: 1.5;
   -webkit-font-smoothing: antialiased;
@@ -89,10 +89,10 @@ kbd {
 }
 
 .studio-panel-strong {
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  background: linear-gradient(180deg, #131313 0%, #1d1a18 100%);
-  color: #f8f4ee;
-  box-shadow: 0 24px 70px rgba(17, 24, 39, 0.22);
+  border: 1px solid rgba(255, 248, 242, 0.12);
+  background: linear-gradient(180deg, #241d19 0%, #312722 100%);
+  color: #f7efe7;
+  box-shadow: 0 24px 70px rgba(44, 34, 29, 0.22);
 }
 
 .studio-eyebrow {
@@ -101,8 +101,8 @@ kbd {
   gap: 0.5rem;
   padding: 0.45rem 0.8rem;
   border-radius: 999px;
-  background: rgba(255, 255, 255, 0.72);
-  border: 1px solid rgba(17, 24, 39, 0.08);
+  background: rgba(255, 251, 246, 0.76);
+  border: 1px solid rgba(71, 55, 46, 0.08);
   font-size: 0.72rem;
   font-weight: 700;
   letter-spacing: 0.16em;
@@ -115,8 +115,8 @@ kbd {
   gap: 0.45rem;
   padding: 0.55rem 0.85rem;
   border-radius: 999px;
-  border: 1px solid rgba(17, 24, 39, 0.08);
-  background: rgba(255, 255, 255, 0.74);
+  border: 1px solid rgba(71, 55, 46, 0.08);
+  background: rgba(255, 251, 246, 0.78);
   font-size: 0.82rem;
   font-weight: 600;
 }
@@ -124,7 +124,7 @@ kbd {
 .studio-chip-active {
   border-color: transparent;
   background: var(--accent-deep);
-  color: #f8f4ee;
+  color: #f7efe7;
 }
 
 .studio-section-title {
@@ -141,8 +141,8 @@ kbd {
 
 .studio-field {
   width: 100%;
-  border: 1px solid rgba(17, 24, 39, 0.1);
-  background: rgba(255, 255, 255, 0.9);
+  border: 1px solid rgba(71, 55, 46, 0.1);
+  background: rgba(255, 252, 248, 0.92);
   border-radius: 18px;
   padding: 0.8rem 0.95rem;
   transition: border-color 0.2s ease, box-shadow 0.2s ease,
@@ -151,8 +151,8 @@ kbd {
 
 .studio-field:focus {
   outline: none;
-  border-color: rgba(255, 107, 53, 0.55);
-  box-shadow: 0 0 0 4px rgba(255, 107, 53, 0.12);
+  border-color: rgba(196, 110, 77, 0.55);
+  box-shadow: 0 0 0 4px rgba(196, 110, 77, 0.14);
 }
 
 .studio-button {
@@ -164,7 +164,7 @@ kbd {
   padding: 0.9rem 1.2rem;
   border: 1px solid transparent;
   background: var(--accent-deep);
-  color: #f8f4ee;
+  color: #f7efe7;
   font-weight: 700;
   transition: transform 0.2s ease, opacity 0.2s ease, background 0.2s ease;
 }
@@ -175,15 +175,15 @@ kbd {
 }
 
 .studio-button-secondary {
-  background: rgba(255, 255, 255, 0.8);
+  background: rgba(255, 251, 246, 0.86);
   color: var(--foreground);
-  border-color: rgba(17, 24, 39, 0.08);
+  border-color: rgba(71, 55, 46, 0.08);
 }
 
 .studio-button-ghost {
   background: transparent;
   color: var(--foreground);
-  border-color: rgba(17, 24, 39, 0.08);
+  border-color: rgba(71, 55, 46, 0.08);
 }
 
 .studio-divider {
@@ -191,15 +191,61 @@ kbd {
   background: linear-gradient(
     90deg,
     transparent 0%,
-    rgba(17, 24, 39, 0.12) 12%,
-    rgba(17, 24, 39, 0.12) 88%,
+    rgba(71, 55, 46, 0.12) 12%,
+    rgba(71, 55, 46, 0.12) 88%,
     transparent 100%
   );
 }
 
 .studio-mesh {
   background-image:
-    linear-gradient(rgba(17, 24, 39, 0.04) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(17, 24, 39, 0.04) 1px, transparent 1px);
+    linear-gradient(rgba(71, 55, 46, 0.04) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(71, 55, 46, 0.04) 1px, transparent 1px);
   background-size: 22px 22px;
+}
+
+.custom-slider {
+  -webkit-appearance: none;
+  width: 100%;
+  height: 6px;
+  border-radius: 999px;
+  background: rgba(71, 55, 46, 0.12);
+  outline: none;
+  margin: 10px 0;
+}
+
+.custom-slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 18px;
+  height: 18px;
+  border-radius: 999px;
+  background: #2c221d;
+  cursor: pointer;
+  border: 2px solid #fff8f2;
+  box-shadow: 0 4px 14px rgba(44, 34, 29, 0.18);
+  margin-top: -6px;
+}
+
+.custom-slider::-moz-range-thumb {
+  width: 18px;
+  height: 18px;
+  border-radius: 999px;
+  background: #2c221d;
+  cursor: pointer;
+  border: 2px solid #fff8f2;
+  box-shadow: 0 4px 14px rgba(44, 34, 29, 0.18);
+}
+
+.custom-slider::-webkit-slider-thumb:hover,
+.custom-slider::-moz-range-thumb:hover {
+  background: #c46e4d;
+}
+
+.custom-slider::-webkit-slider-runnable-track,
+.custom-slider::-moz-range-track {
+  width: 100%;
+  height: 6px;
+  cursor: pointer;
+  border-radius: 999px;
 }

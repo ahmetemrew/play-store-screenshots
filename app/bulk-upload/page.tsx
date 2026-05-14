@@ -15,6 +15,7 @@ import { inspectInboundCapture as validateUploadedScreenshot } from "@/lib/intak
 import {
   spawnCaptionToken as createTextLayer,
   extractLeadCaption as getScenePrimaryText,
+  extractBackgroundLayerPatch,
   inflateDraftFromQuery as mergeSceneFromSearchParams,
   serializeDraftToQuery as sceneToSearchParams,
   type CanvasDraft as StudioScene,
@@ -93,7 +94,7 @@ function CardPreview({ card }: CardPreviewProps) {
             <p className="mb-1 text-[11px] font-bold uppercase tracking-[0.24em] text-white/55">
               Önizleme
             </p>
-            <h3 className="mb-0 text-2xl text-[#f8f4ee]">
+            <h3 className="mb-0 text-2xl text-[#f7efe7]">
               {deviceNames[card.scene.frame]}
             </h3>
           </div>
@@ -111,6 +112,11 @@ function CardPreview({ card }: CardPreviewProps) {
               frameKey={card.scene.frame}
               textColor={card.scene.textColor}
               backgroundColor={card.scene.backgroundColor}
+              backgroundImage={card.scene.backgroundImage}
+              backgroundImageScale={card.scene.backgroundImageScale}
+              backgroundImageRotation={card.scene.backgroundImageRotation}
+              backgroundImageOffsetX={card.scene.backgroundImageOffsetX}
+              backgroundImageOffsetY={card.scene.backgroundImageOffsetY}
               bezelWidth={card.scene.bezelWidth}
               bezelColor={card.scene.bezelColor}
               fontFamily={card.scene.fontFamily}
@@ -158,16 +164,19 @@ function BulkEditor() {
   const router = useRouter();
   const searchParams = useSearchParams();
 
-  const baseScene = useMemo<StudioScene>(
+  const initialScene = useMemo<StudioScene>(
     () => mergeSceneFromSearchParams(searchParams),
     [searchParams]
   );
 
+  const [templateScene, setTemplateScene] = useState<StudioScene>(initialScene);
   const [cards, setCards] = useState<BatchCard[]>(() => [
-    createBatchCard(baseScene, baseScene.headline, baseScene.image),
+    createBatchCard(initialScene, initialScene.headline, initialScene.image),
   ]);
   const [openEditors, setOpenEditors] = useState<Record<string, boolean>>({});
-  const [hasImportedImages, setHasImportedImages] = useState(Boolean(baseScene.image));
+  const [hasImportedImages, setHasImportedImages] = useState(
+    Boolean(initialScene.image)
+  );
   const [isValidating, setIsValidating] = useState(false);
   const [uploadErrors, setUploadErrors] = useState<string[]>([]);
   const [exportMode, setExportMode] = useState<"zip" | "files">("zip");
@@ -192,11 +201,11 @@ function BulkEditor() {
   }, [cards]);
 
   const backToEditor = () => {
-    router.push(`/?${sceneToSearchParams(baseScene).toString()}`);
+    router.push(`/?${sceneToSearchParams(templateScene).toString()}`);
   };
 
   const addCard = () => {
-    setCards((current) => [...current, createBatchCard(baseScene)]);
+    setCards((current) => [...current, createBatchCard(templateScene)]);
   };
 
   const patchCardScene = (id: string, patch: Partial<StudioScene>) => {
@@ -293,6 +302,28 @@ function BulkEditor() {
     );
   };
 
+  const applyCardBackgroundToAll = (cardId: string) => {
+    const sourceCard = cards.find((card) => card.id === cardId);
+    if (!sourceCard) return;
+
+    const backgroundPatch = extractBackgroundLayerPatch(sourceCard.scene);
+
+    setTemplateScene((current) => ({
+      ...current,
+      ...backgroundPatch,
+    }));
+
+    setCards((current) =>
+      current.map((card) => ({
+        ...card,
+        scene: {
+          ...card.scene,
+          ...backgroundPatch,
+        },
+      }))
+    );
+  };
+
   const resetCardScene = (id: string) => {
     setCards((current) =>
       current.map((card) => {
@@ -300,14 +331,14 @@ function BulkEditor() {
 
         const nextLayers = card.scene.textLayers.map((layer, index) => {
           const baseLayer =
-            baseScene.textLayers[index] ??
-            createTextLayer(baseScene.frame, {
-              y: baseScene.textLayers[0]?.y
-                ? baseScene.textLayers[0].y + index * 120
+            templateScene.textLayers[index] ??
+            createTextLayer(templateScene.frame, {
+              y: templateScene.textLayers[0]?.y
+                ? templateScene.textLayers[0].y + index * 120
                 : undefined,
             });
 
-          return createTextLayer(baseScene.frame, {
+          return createTextLayer(templateScene.frame, {
             ...baseLayer,
             text: layer.text,
           });
@@ -317,7 +348,7 @@ function BulkEditor() {
           ...card,
           scene: syncSceneTextLayers(
             {
-              ...baseScene,
+              ...templateScene,
               image: card.scene.image,
             },
             nextLayers
@@ -363,7 +394,7 @@ function BulkEditor() {
 
         image.onload = () => {
           const validation = validateUploadedScreenshot({
-            deviceType: baseScene.frame,
+            deviceType: templateScene.frame,
             width: image.width,
             height: image.height,
           });
@@ -416,7 +447,14 @@ function BulkEditor() {
           const emptyCardIndex = next.findIndex((card) => !card.scene.image);
 
           if (emptyCardIndex === -1) {
-            next.push(createBatchCard(baseScene, baseScene.headline, imageUrl, fileBaseName));
+            next.push(
+              createBatchCard(
+                templateScene,
+                templateScene.headline,
+                imageUrl,
+                fileBaseName
+              )
+            );
             return;
           }
 
@@ -447,7 +485,7 @@ function BulkEditor() {
   };
 
   const getCardExportBaseName = (card: BatchCard, index: number) => {
-    const fallbackName = `toplu-${index + 1}-${baseScene.frame}`;
+    const fallbackName = `toplu-${index + 1}-${templateScene.frame}`;
 
     if (!preserveOriginalNames || !card.sourceFileName) {
       return fallbackName;
@@ -476,7 +514,7 @@ function BulkEditor() {
     });
 
     const content = await zip.generateAsync({ type: "blob" });
-    saveAs(content, `toplu-çıktı-${baseScene.frame}.zip`);
+    saveAs(content, `toplu-çıktı-${templateScene.frame}.zip`);
   };
 
   const exportFiles = async () => {
@@ -519,7 +557,7 @@ function BulkEditor() {
         <section className="studio-panel px-6 py-6 sm:px-7">
           <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
             <div className="flex flex-wrap gap-2">
-              <span className="studio-chip">{deviceNames[baseScene.frame]}</span>
+              <span className="studio-chip">{deviceNames[templateScene.frame]}</span>
               <span className="studio-chip">
                 Hazır: {completedCards}/{cards.length || 0}
               </span>
@@ -565,11 +603,12 @@ function BulkEditor() {
               className={`flex min-h-[190px] cursor-pointer flex-col items-center justify-center rounded-[22px] border-2 border-dashed px-6 text-center transition ${
                 isValidating
                   ? "border-[rgba(17,24,39,0.14)] bg-white/60"
-                  : "border-[rgba(17,24,39,0.12)] bg-[#fff8ef] hover:border-[#ff6b35] hover:bg-[#fff2ea]"
+                  : "border-[rgba(71,55,46,0.12)] bg-[#faf3ea] hover:border-[#c46e4d] hover:bg-[#f5e8de]"
               }`}
             >
-              <div className="mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-[#171412] text-white shadow-[0_14px_24px_rgba(23,20,18,0.18)]">
+              <div className="mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-[#2c221d] text-white shadow-[0_14px_24px_rgba(44,34,29,0.18)]">
                 <svg
+                  suppressHydrationWarning
                   xmlns="http://www.w3.org/2000/svg"
                   className="h-6 w-6"
                   viewBox="0 0 24 24"
@@ -584,7 +623,7 @@ function BulkEditor() {
                   />
                 </svg>
               </div>
-              <p className="mb-0 text-sm font-semibold text-[#171412]">
+              <p className="mb-0 text-sm font-semibold text-[#221c18]">
                 {isValidating ? "Dosyalar kontrol ediliyor..." : "Çoklu görsel seç"}
               </p>
             </label>
@@ -613,11 +652,11 @@ function BulkEditor() {
               >
                 <div className="flex flex-wrap items-center justify-between gap-4">
                   <div className="flex items-center gap-3">
-                    <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-[#171412] text-sm font-semibold text-[#fff7ee]">
+                    <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-[#2c221d] text-sm font-semibold text-[#f7efe7]">
                       {index + 1}
                     </div>
                     <div>
-                      <p className="mb-0 text-sm font-semibold text-[#171412]">
+                      <p className="mb-0 text-sm font-semibold text-[#221c18]">
                         Kart {index + 1}
                       </p>
                       <p className="mb-0 text-xs studio-muted">
@@ -659,6 +698,9 @@ function BulkEditor() {
                         onImageUpload={(image, fileName) =>
                           handleCardImageUpload(card.id, image, fileName)
                         }
+                        onApplyBackgroundToAll={() =>
+                          applyCardBackgroundToAll(card.id)
+                        }
                         onReset={() => resetCardScene(card.id)}
                       />
                     ) : (
@@ -683,12 +725,12 @@ function BulkEditor() {
                 <p className="mb-1 text-[11px] font-bold uppercase tracking-[0.24em] text-white/55">
                   Özet
                 </p>
-                <h2 className="mb-0 text-3xl text-[#f8f4ee]">Toplu dışa aktarım</h2>
+                <h2 className="mb-0 text-3xl text-[#f7efe7]">Toplu dışa aktarım</h2>
               </div>
 
               <div className="flex flex-wrap gap-2">
                 <span className="rounded-full border border-white/10 bg-white/5 px-4 py-2 text-xs font-semibold uppercase tracking-[0.16em] text-white/70">
-                  {deviceNames[baseScene.frame]}
+                  {deviceNames[templateScene.frame]}
                 </span>
                 <span className="rounded-full border border-white/10 bg-white/5 px-4 py-2 text-xs font-semibold uppercase tracking-[0.16em] text-white/70">
                   {cards.length} kart
@@ -715,8 +757,9 @@ function BulkEditor() {
                     <option value="zip">ZIP arşivi</option>
                     <option value="files">Fotoğrafları ayrı indir</option>
                   </select>
-                  <div className="pointer-events-none absolute inset-y-0 right-4 flex items-center text-[#171412]">
+                  <div className="pointer-events-none absolute inset-y-0 right-4 flex items-center text-[#221c18]">
                     <svg
+                      suppressHydrationWarning
                       xmlns="http://www.w3.org/2000/svg"
                       className="h-5 w-5"
                       viewBox="0 0 20 20"
@@ -740,7 +783,7 @@ function BulkEditor() {
                   type="checkbox"
                   checked={preserveOriginalNames}
                   onChange={(event) => setPreserveOriginalNames(event.target.checked)}
-                  className="h-5 w-5 rounded border-white/20 text-[#171412] focus:ring-white/20"
+                  className="h-5 w-5 rounded border-white/20 text-[#221c18] focus:ring-white/20"
                 />
               </label>
 

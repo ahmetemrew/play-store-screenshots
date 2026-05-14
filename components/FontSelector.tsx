@@ -71,8 +71,9 @@ const FontSelector = ({ value, onChange }: FontSelectorProps) => {
           {value.split(",")[0].replace(/['"]/g, "")}
         </span>
         <svg
+          suppressHydrationWarning
           xmlns="http://www.w3.org/2000/svg"
-          className="h-5 w-5 text-[#171412]"
+          className="h-5 w-5 text-[#221c18]"
           viewBox="0 0 20 20"
           fill="currentColor"
         >
@@ -85,7 +86,7 @@ const FontSelector = ({ value, onChange }: FontSelectorProps) => {
       </button>
 
       {isLibraryOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-[#171412]/50 p-4 backdrop-blur-sm">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-[#2c221d]/45 p-4 backdrop-blur-sm">
           <div className="studio-panel max-h-[82vh] w-full max-w-4xl overflow-hidden">
             <div className="border-b border-[rgba(17,24,39,0.08)] px-5 py-5 sm:px-6">
               <div className="flex items-center justify-between gap-4">
@@ -93,7 +94,7 @@ const FontSelector = ({ value, onChange }: FontSelectorProps) => {
                   <p className="mb-1 text-[11px] font-bold uppercase tracking-[0.24em] studio-muted">
                     Yazı tipi
                   </p>
-                  <h3 className="mb-0 text-2xl text-[#171412]">Seçim yapın</h3>
+                  <h3 className="mb-0 text-2xl text-[#221c18]">Seçim yapın</h3>
                 </div>
                 <button
                   type="button"
@@ -124,20 +125,20 @@ const FontSelector = ({ value, onChange }: FontSelectorProps) => {
                     <button
                       key={font.family}
                       type="button"
-                      className="rounded-[22px] border border-[rgba(17,24,39,0.08)] bg-white/80 p-4 text-left transition hover:-translate-y-[1px] hover:border-[#ff6b35] hover:bg-[#fff7f0]"
+                      className="rounded-[22px] border border-[rgba(71,55,46,0.08)] bg-white/80 p-4 text-left transition hover:-translate-y-[1px] hover:border-[#c46e4d] hover:bg-[#f7ece4]"
                       onClick={() => pickFont(font.family)}
                       onMouseEnter={() => loadFont(font.family)}
                       style={{ fontFamily: font.family }}
                     >
                       <div className="flex items-center justify-between gap-3">
-                        <span className="text-base font-semibold text-[#171412]">
+                        <span className="text-base font-semibold text-[#221c18]">
                           {font.family}
                         </span>
                         <span className="rounded-full bg-[rgba(17,24,39,0.06)] px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.16em] studio-muted">
                           {font.category}
                         </span>
                       </div>
-                      <p className="mb-0 mt-3 text-lg leading-snug text-[#171412]">
+                      <p className="mb-0 mt-3 text-lg leading-snug text-[#221c18]">
                         {font.preview}
                       </p>
                     </button>

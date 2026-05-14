@@ -39,9 +39,10 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="tr">
+    <html lang="tr" suppressHydrationWarning>
       <head />
       <body
+        suppressHydrationWarning
         className={`${inter.variable} ${dmSans.variable} ${outfit.variable} ${jetbrainsMono.variable} antialiased`}
       >
         <Toaster position="top-center" />

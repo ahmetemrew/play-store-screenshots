@@ -106,7 +106,7 @@ const ImageUpload = ({ frameKey, onImageUpload }: ImageUploadProps) => {
       <div
         className={`rounded-[24px] border-2 border-dashed p-6 text-center transition ${
           dragActive
-            ? "border-[#ff6b35] bg-[#fff4ee]"
+            ? "border-[#c46e4d] bg-[#f6ebe3]"
             : error
             ? "border-red-300 bg-red-50"
             : "border-[rgba(17,24,39,0.12)] bg-white/60"
@@ -125,8 +125,9 @@ const ImageUpload = ({ frameKey, onImageUpload }: ImageUploadProps) => {
           onChange={handleInputChange}
         />
 
-        <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-[#171412] text-white shadow-[0_14px_24px_rgba(23,20,18,0.18)]">
+        <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-[#2c221d] text-white shadow-[0_14px_24px_rgba(44,34,29,0.18)]">
           <svg
+            suppressHydrationWarning
             xmlns="http://www.w3.org/2000/svg"
             className="h-6 w-6"
             viewBox="0 0 24 24"
@@ -142,7 +143,7 @@ const ImageUpload = ({ frameKey, onImageUpload }: ImageUploadProps) => {
           </svg>
         </div>
 
-        <p className="mb-0 mt-4 text-sm font-semibold text-[#171412]">
+        <p className="mb-0 mt-4 text-sm font-semibold text-[#221c18]">
           Görseli bırakın veya seçin
         </p>
         <p className="mb-0 mt-2 text-xs studio-muted">{getUploadHint(frameKey)}</p>
@@ -158,7 +159,7 @@ const ImageUpload = ({ frameKey, onImageUpload }: ImageUploadProps) => {
       </div>
 
       {fileLabel && !error && (
-        <div className="rounded-full border border-[rgba(17,24,39,0.08)] bg-white/70 px-4 py-2 text-xs font-medium text-[#171412]">
+        <div className="rounded-full border border-[rgba(71,55,46,0.08)] bg-white/70 px-4 py-2 text-xs font-medium text-[#221c18]">
           {fileLabel}
         </div>
       )}

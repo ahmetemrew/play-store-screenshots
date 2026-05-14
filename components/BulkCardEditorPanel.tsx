@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import ImageUpload from "@/components/ImageUpload";
+import BackgroundImageEditor from "@/components/BackgroundImageEditor";
 import TextLayersEditor from "@/components/TextLayersEditor";
 import {
   VIEWPORT_EXPORT_DIMENSIONS as deviceDimensions,
@@ -17,60 +18,13 @@ import {
   type CanvasDraft as StudioScene,
 } from "@/lib/rendering/draft-state";
 
-const sliderStyles = `
-  .custom-slider {
-    -webkit-appearance: none;
-    width: 100%;
-    height: 6px;
-    border-radius: 999px;
-    background: rgba(17, 24, 39, 0.12);
-    outline: none;
-    margin: 10px 0;
-  }
-
-  .custom-slider::-webkit-slider-thumb {
-    -webkit-appearance: none;
-    appearance: none;
-    width: 18px;
-    height: 18px;
-    border-radius: 999px;
-    background: #171412;
-    cursor: pointer;
-    border: 2px solid #fffaf2;
-    box-shadow: 0 4px 14px rgba(17, 24, 39, 0.18);
-    margin-top: -6px;
-  }
-
-  .custom-slider::-moz-range-thumb {
-    width: 18px;
-    height: 18px;
-    border-radius: 999px;
-    background: #171412;
-    cursor: pointer;
-    border: 2px solid #fffaf2;
-    box-shadow: 0 4px 14px rgba(17, 24, 39, 0.18);
-  }
-
-  .custom-slider::-webkit-slider-thumb:hover,
-  .custom-slider::-moz-range-thumb:hover {
-    background: #ff6b35;
-  }
-
-  .custom-slider::-webkit-slider-runnable-track,
-  .custom-slider::-moz-range-track {
-    width: 100%;
-    height: 6px;
-    cursor: pointer;
-    border-radius: 999px;
-  }
-`;
-
 type BulkCardEditorPanelProps = {
   scene: StudioScene;
   onSceneChange: (patch: Partial<StudioScene>) => void;
   onTextLayersChange: (nextLayers: StudioScene["textLayers"]) => void;
   onLayerFontFamilyChange: (layerId: string, fontFamily: string) => void;
   onImageUpload: (image: string, fileName?: string) => void;
+  onApplyBackgroundToAll?: () => void;
   onReset: () => void;
 };
 
@@ -80,6 +34,7 @@ export default function BulkCardEditorPanel({
   onTextLayersChange,
   onLayerFontFamilyChange,
   onImageUpload,
+  onApplyBackgroundToAll,
   onReset,
 }: BulkCardEditorPanelProps) {
   const [activeRecipe, setActiveRecipe] = useState<StudioRecipeKey | null>(null);
@@ -111,8 +66,6 @@ export default function BulkCardEditorPanel({
 
   return (
     <>
-      <style dangerouslySetInnerHTML={{ __html: sliderStyles }} />
-
       <div className="space-y-6">
         <section className="studio-panel px-6 py-6 sm:px-7">
           <div className="flex flex-wrap items-start justify-between gap-4">
@@ -120,7 +73,7 @@ export default function BulkCardEditorPanel({
               <p className="mb-1 text-[11px] font-bold uppercase tracking-[0.24em] studio-muted">
                 Kart düzenleyicisi
               </p>
-              <h3 className="mb-0 text-2xl text-[#171412]">
+              <h3 className="mb-0 text-2xl text-[#221c18]">
                 {deviceNames[scene.frame]}
               </h3>
             </div>
@@ -151,6 +104,12 @@ export default function BulkCardEditorPanel({
             onImageUpload={onImageUpload}
           />
         </section>
+
+        <BackgroundImageEditor
+          scene={scene}
+          onSceneChange={onSceneChange}
+          onApplyToAll={onApplyBackgroundToAll}
+        />
 
         <section className="studio-panel px-6 py-6 sm:px-7">
           <p className="studio-section-title">Hazır stil</p>
@@ -329,6 +288,7 @@ export default function BulkCardEditorPanel({
                     </select>
                     <div className="pointer-events-none absolute inset-y-0 right-4 flex items-center">
                       <svg
+                        suppressHydrationWarning
                         xmlns="http://www.w3.org/2000/svg"
                         className="h-5 w-5"
                         viewBox="0 0 20 20"
@@ -387,7 +347,7 @@ export default function BulkCardEditorPanel({
 
                     <div className="rounded-[24px] border border-[rgba(17,24,39,0.08)] bg-white/70 px-5 py-4">
                       <label className="flex items-center justify-between gap-4">
-                        <span className="text-sm font-medium text-[#171412]">
+                        <span className="text-sm font-medium text-[#221c18]">
                           Kameraların arasını doldur
                         </span>
                         <input
@@ -398,7 +358,7 @@ export default function BulkCardEditorPanel({
                               cameraBridgeEnabled: event.target.checked,
                             })
                           }
-                          className="h-5 w-5 rounded border-[rgba(17,24,39,0.2)] text-[#171412] focus:ring-[#171412]"
+                          className="h-5 w-5 rounded border-[rgba(71,55,46,0.2)] text-[#221c18] focus:ring-[#221c18]"
                         />
                       </label>
                     </div>

@@ -31,6 +31,12 @@ export type CanvasDraft = {
   image: string | null;
   textColor: string;
   backgroundColor: string;
+  backgroundImage: string | null;
+  backgroundImageAssetId: string | null;
+  backgroundImageScale: number;
+  backgroundImageRotation: number;
+  backgroundImageOffsetX: number;
+  backgroundImageOffsetY: number;
   bezelWidth: number;
   bezelColor: string;
   fontFamily: string;
@@ -48,10 +54,28 @@ export type CanvasDraft = {
   cameraOffsetY: number;
 };
 
-const DEFAULT_TEXT_COLOR = "#11181C";
+export type BackgroundLayerPatch = Pick<
+  CanvasDraft,
+  | "backgroundColor"
+  | "backgroundImage"
+  | "backgroundImageAssetId"
+  | "backgroundImageScale"
+  | "backgroundImageRotation"
+  | "backgroundImageOffsetX"
+  | "backgroundImageOffsetY"
+>;
+
+const DEFAULT_TEXT_COLOR = "#221c18";
 const DEFAULT_FONT_FAMILY = "Inter, sans-serif";
 const DEFAULT_FONT_SIZE = 96;
 const DEFAULT_FONT_WEIGHT = "600";
+const BACKGROUND_IMAGE_DEFAULTS = {
+  scale: 1,
+  rotation: 0,
+  offsetX: 0,
+  offsetY: 0,
+} as const;
+const BACKGROUND_IMAGE_STORAGE_PREFIX = "launchcanvas.background-image";
 
 const makeCaptionTokenId = () => {
   if (typeof crypto !== "undefined" && "randomUUID" in crypto) {
@@ -59,6 +83,14 @@ const makeCaptionTokenId = () => {
   }
 
   return `copy-${Math.random().toString(36).slice(2, 10)}`;
+};
+
+const makeBackgroundImageAssetId = () => {
+  if (typeof crypto !== "undefined" && "randomUUID" in crypto) {
+    return `bg-${crypto.randomUUID().slice(0, 8)}`;
+  }
+
+  return `bg-${Math.random().toString(36).slice(2, 10)}`;
 };
 
 const readNumericToken = (
@@ -197,6 +229,42 @@ export const extractLeadCaption = (draft: CanvasDraft) =>
 export const viewportHasCameraGeometry = (viewportId: DraftViewportId) =>
   Object.prototype.hasOwnProperty.call(VIEWPORT_CAMERA_GEOMETRY, viewportId);
 
+const getBackgroundImageStorageKey = (assetId: string) =>
+  `${BACKGROUND_IMAGE_STORAGE_PREFIX}.${assetId}`;
+
+export const persistBackgroundImageAsset = (imageDataUrl: string) => {
+  const assetId = makeBackgroundImageAssetId();
+
+  if (typeof window !== "undefined") {
+    window.sessionStorage.setItem(
+      getBackgroundImageStorageKey(assetId),
+      imageDataUrl
+    );
+  }
+
+  return assetId;
+};
+
+export const readBackgroundImageAsset = (assetId: string | null) => {
+  if (!assetId || typeof window === "undefined") {
+    return null;
+  }
+
+  return window.sessionStorage.getItem(getBackgroundImageStorageKey(assetId));
+};
+
+export const extractBackgroundLayerPatch = (
+  draft: CanvasDraft
+): BackgroundLayerPatch => ({
+  backgroundColor: draft.backgroundColor,
+  backgroundImage: draft.backgroundImage,
+  backgroundImageAssetId: draft.backgroundImageAssetId,
+  backgroundImageScale: draft.backgroundImageScale,
+  backgroundImageRotation: draft.backgroundImageRotation,
+  backgroundImageOffsetX: draft.backgroundImageOffsetX,
+  backgroundImageOffsetY: draft.backgroundImageOffsetY,
+});
+
 export const buildCanvasDraft = (
   viewportId: DraftViewportId,
   headline = "",
@@ -224,6 +292,12 @@ export const buildCanvasDraft = (
     image,
     textColor: starter.textColor,
     backgroundColor: starter.backgroundColor,
+    backgroundImage: null,
+    backgroundImageAssetId: null,
+    backgroundImageScale: BACKGROUND_IMAGE_DEFAULTS.scale,
+    backgroundImageRotation: BACKGROUND_IMAGE_DEFAULTS.rotation,
+    backgroundImageOffsetX: BACKGROUND_IMAGE_DEFAULTS.offsetX,
+    backgroundImageOffsetY: BACKGROUND_IMAGE_DEFAULTS.offsetY,
     bezelWidth: starter.bezelWidth,
     bezelColor: starter.bezelColor,
     fontFamily: starter.fontFamily,
@@ -290,6 +364,28 @@ export const inflateDraftFromQuery = (
       textColor: legacyLeadToken.color,
       backgroundColor:
         searchParams.get("backgroundColor") || seedDraft.backgroundColor,
+      backgroundImageAssetId: searchParams.get("backgroundImageAssetId"),
+      backgroundImage: readBackgroundImageAsset(
+        searchParams.get("backgroundImageAssetId")
+      ),
+      backgroundImageScale: readNumericToken(
+        searchParams.get("backgroundImageScale"),
+        seedDraft.backgroundImageScale,
+        "float"
+      ),
+      backgroundImageRotation: readNumericToken(
+        searchParams.get("backgroundImageRotation"),
+        seedDraft.backgroundImageRotation,
+        "float"
+      ),
+      backgroundImageOffsetX: readNumericToken(
+        searchParams.get("backgroundImageOffsetX"),
+        seedDraft.backgroundImageOffsetX
+      ),
+      backgroundImageOffsetY: readNumericToken(
+        searchParams.get("backgroundImageOffsetY"),
+        seedDraft.backgroundImageOffsetY
+      ),
       bezelWidth: readNumericToken(
         searchParams.get("bezelWidth"),
         seedDraft.bezelWidth,
@@ -349,6 +445,28 @@ export const serializeDraftToQuery = (draft: CanvasDraft) => {
   params.set("textLayers", JSON.stringify(normalizedDraft.textLayers));
   params.set("textColor", normalizedDraft.textColor);
   params.set("backgroundColor", normalizedDraft.backgroundColor);
+  if (normalizedDraft.backgroundImageAssetId) {
+    params.set(
+      "backgroundImageAssetId",
+      normalizedDraft.backgroundImageAssetId
+    );
+  }
+  params.set(
+    "backgroundImageScale",
+    String(normalizedDraft.backgroundImageScale)
+  );
+  params.set(
+    "backgroundImageRotation",
+    String(normalizedDraft.backgroundImageRotation)
+  );
+  params.set(
+    "backgroundImageOffsetX",
+    String(normalizedDraft.backgroundImageOffsetX)
+  );
+  params.set(
+    "backgroundImageOffsetY",
+    String(normalizedDraft.backgroundImageOffsetY)
+  );
   params.set("bezelWidth", String(normalizedDraft.bezelWidth));
   params.set("bezelColor", normalizedDraft.bezelColor);
   params.set("fontFamily", normalizedDraft.fontFamily);

@@ -77,7 +77,7 @@ export default function TextLayersEditor({
               <p className="mb-1 text-xs font-semibold uppercase tracking-[0.16em] studio-muted">
                 Yazı bloğu {index + 1}
               </p>
-              <p className="mb-0 text-sm text-[#171412]">
+              <p className="mb-0 text-sm text-[#221c18]">
                 Konum ve stil bu blok için ayrıdır.
               </p>
             </div>
@@ -134,6 +134,7 @@ export default function TextLayersEditor({
                 </select>
                 <div className="pointer-events-none absolute inset-y-0 right-4 flex items-center">
                   <svg
+                    suppressHydrationWarning
                     xmlns="http://www.w3.org/2000/svg"
                     className="h-5 w-5"
                     viewBox="0 0 20 20"
@@ -169,6 +170,7 @@ export default function TextLayersEditor({
                 </select>
                 <div className="pointer-events-none absolute inset-y-0 right-4 flex items-center">
                   <svg
+                    suppressHydrationWarning
                     xmlns="http://www.w3.org/2000/svg"
                     className="h-5 w-5"
                     viewBox="0 0 20 20"

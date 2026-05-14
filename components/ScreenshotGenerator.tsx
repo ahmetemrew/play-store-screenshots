@@ -13,6 +13,11 @@ interface ScreenshotGeneratorProps {
   frameKey: string;
   textColor: string;
   backgroundColor: string;
+  backgroundImage?: string | null;
+  backgroundImageScale?: number;
+  backgroundImageRotation?: number;
+  backgroundImageOffsetX?: number;
+  backgroundImageOffsetY?: number;
   bezelWidth: number;
   bezelColor: string;
   fontFamily: string;
@@ -37,10 +42,15 @@ const ScreenshotGenerator = ({
   headline,
   textLayers,
   frameKey,
-  textColor = "#ffffff",
-  backgroundColor = "#0099ff",
+  textColor = "#f7efe7",
+  backgroundColor = "#dfe8e0",
+  backgroundImage = null,
+  backgroundImageScale = 1,
+  backgroundImageRotation = 0,
+  backgroundImageOffsetX = 0,
+  backgroundImageOffsetY = 0,
   bezelWidth = 20,
-  bezelColor = "#f5f5f7",
+  bezelColor = "#f7efe7",
   fontFamily = "Arial, sans-serif",
   fontSize = 54,
   fontWeight = "normal",
@@ -74,135 +84,169 @@ const ScreenshotGenerator = ({
     exportCanvas.width = canvasSize.width;
     exportCanvas.height = canvasSize.height;
 
-    const sourceImage = new Image();
-    sourceImage.onload = () => {
-      context.clearRect(0, 0, exportCanvas.width, exportCanvas.height);
-      context.fillStyle = backgroundColor;
-      context.fillRect(0, 0, exportCanvas.width, exportCanvas.height);
+    let cancelled = false;
 
-      const maxCaptureWidth = exportCanvas.width * 0.85;
-      const maxCaptureHeight = exportCanvas.height * 0.7;
-      const scale =
-        Math.min(
-          maxCaptureWidth / (sourceImage.width + bezelWidth * 2),
-          maxCaptureHeight / (sourceImage.height + bezelWidth * 2)
-        ) * frameScale;
+    const renderPreview = async () => {
+      try {
+        const sourceImage = await loadImageAsset(screenshotImage);
+        const resolvedBackgroundImage = backgroundImage
+          ? await loadImageAsset(backgroundImage).catch(() => null)
+          : null;
 
-      const captureWidth = sourceImage.width * scale;
-      const captureHeight = sourceImage.height * scale;
-      const outerWidth = captureWidth + bezelWidth * 2;
-      const outerHeight = captureHeight + bezelWidth * 2;
-      const outerX = (exportCanvas.width - outerWidth) / 2;
-      const outerY = frameTop;
-      const innerX = outerX + bezelWidth;
-      const innerY = outerY + bezelWidth;
-      const innerRadius = Math.max(0, cornerRadius - bezelWidth);
+        if (cancelled) return;
 
-      context.fillStyle = bezelColor;
-      fillRoundedRect(
-        context,
-        outerX,
-        outerY,
-        outerWidth,
-        outerHeight,
-        cornerRadius
-      );
+        context.clearRect(0, 0, exportCanvas.width, exportCanvas.height);
+        context.fillStyle = backgroundColor;
+        context.fillRect(0, 0, exportCanvas.width, exportCanvas.height);
 
-      context.save();
-      traceRoundedRect(
-        context,
-        innerX,
-        innerY,
-        captureWidth,
-        captureHeight,
-        innerRadius
-      );
-      context.clip();
-      context.drawImage(sourceImage, innerX, innerY, captureWidth, captureHeight);
-      context.restore();
+        if (resolvedBackgroundImage) {
+          drawBackgroundImage(
+            context,
+            resolvedBackgroundImage,
+            exportCanvas.width,
+            exportCanvas.height,
+            backgroundImageScale,
+            backgroundImageRotation,
+            backgroundImageOffsetX,
+            backgroundImageOffsetY
+          );
+        }
 
-      paintCutout(
-        context,
-        frameKey,
-        innerX,
-        innerY,
-        captureWidth,
-        captureHeight
-      );
-      const resolvedTextLayers =
-        textLayers && textLayers.length > 0
-          ? textLayers
-          : [
-              {
-                id: "legacy-primary",
-                text: headline,
-                color: textColor,
-                fontFamily,
-                fontSize,
-                fontWeight,
-                x: exportCanvas.width / 2,
-                y: headlineTop,
-                align: "center" as const,
-              },
-            ];
+        const maxCaptureWidth = exportCanvas.width * 0.85;
+        const maxCaptureHeight = exportCanvas.height * 0.7;
+        const scale =
+          Math.min(
+            maxCaptureWidth / (sourceImage.width + bezelWidth * 2),
+            maxCaptureHeight / (sourceImage.height + bezelWidth * 2)
+          ) * frameScale;
 
-      resolvedTextLayers.forEach((layer) => {
-        if (layer.text.trim() === "") return;
+        const captureWidth = sourceImage.width * scale;
+        const captureHeight = sourceImage.height * scale;
+        const outerWidth = captureWidth + bezelWidth * 2;
+        const outerHeight = captureHeight + bezelWidth * 2;
+        const outerX = (exportCanvas.width - outerWidth) / 2;
+        const outerY = frameTop;
+        const innerX = outerX + bezelWidth;
+        const innerY = outerY + bezelWidth;
+        const innerRadius = Math.max(0, cornerRadius - bezelWidth);
 
-        context.fillStyle = layer.color;
-        context.font = `${layer.fontWeight} ${layer.fontSize}px ${layer.fontFamily}`;
-        context.textAlign = layer.align;
+        context.fillStyle = bezelColor;
+        fillRoundedRect(
+          context,
+          outerX,
+          outerY,
+          outerWidth,
+          outerHeight,
+          cornerRadius
+        );
 
-        const lineHeight = layer.fontSize * 1.2;
-        const headlineLimit =
-          layer.align === "start"
-            ? Math.max(140, exportCanvas.width - layer.x - 32)
-            : layer.align === "end"
-              ? Math.max(140, layer.x - 32)
-              : Math.max(
-                  160,
-                  Math.min(layer.x * 2 - 40, (exportCanvas.width - layer.x) * 2 - 40)
-                );
-        let currentY = layer.y;
+        context.save();
+        traceRoundedRect(
+          context,
+          innerX,
+          innerY,
+          captureWidth,
+          captureHeight,
+          innerRadius
+        );
+        context.clip();
+        context.drawImage(sourceImage, innerX, innerY, captureWidth, captureHeight);
+        context.restore();
 
-        layer.text.split("\n").forEach((paragraph) => {
-          if (paragraph.trim() === "") {
-            currentY += lineHeight;
-            return;
-          }
+        paintCutout(
+          context,
+          frameKey,
+          innerX,
+          innerY,
+          captureWidth,
+          captureHeight
+        );
+        const resolvedTextLayers =
+          textLayers && textLayers.length > 0
+            ? textLayers
+            : [
+                {
+                  id: "legacy-primary",
+                  text: headline,
+                  color: textColor,
+                  fontFamily,
+                  fontSize,
+                  fontWeight,
+                  x: exportCanvas.width / 2,
+                  y: headlineTop,
+                  align: "center" as const,
+                },
+              ];
 
-          const words = paragraph.split(" ");
-          let line = words[0] ?? "";
+        resolvedTextLayers.forEach((layer) => {
+          if (layer.text.trim() === "") return;
 
-          for (let index = 1; index < words.length; index += 1) {
-            const nextLine = `${line} ${words[index]}`;
-            if (context.measureText(nextLine).width > headlineLimit) {
-              context.fillText(line, layer.x, currentY);
+          context.fillStyle = layer.color;
+          context.font = `${layer.fontWeight} ${layer.fontSize}px ${layer.fontFamily}`;
+          context.textAlign = layer.align;
+
+          const lineHeight = layer.fontSize * 1.2;
+          const headlineLimit =
+            layer.align === "start"
+              ? Math.max(140, exportCanvas.width - layer.x - 32)
+              : layer.align === "end"
+                ? Math.max(140, layer.x - 32)
+                : Math.max(
+                    160,
+                    Math.min(layer.x * 2 - 40, (exportCanvas.width - layer.x) * 2 - 40)
+                  );
+          let currentY = layer.y;
+
+          layer.text.split("\n").forEach((paragraph) => {
+            if (paragraph.trim() === "") {
               currentY += lineHeight;
-              line = words[index];
-            } else {
-              line = nextLine;
+              return;
             }
-          }
 
-          context.fillText(line, layer.x, currentY);
-          currentY += lineHeight;
+            const words = paragraph.split(" ");
+            let line = words[0] ?? "";
+
+            for (let index = 1; index < words.length; index += 1) {
+              const nextLine = `${line} ${words[index]}`;
+              if (context.measureText(nextLine).width > headlineLimit) {
+                context.fillText(line, layer.x, currentY);
+                currentY += lineHeight;
+                line = words[index];
+              } else {
+                line = nextLine;
+              }
+            }
+
+            context.fillText(line, layer.x, currentY);
+            currentY += lineHeight;
+          });
         });
-      });
 
-      if (!previewCanvasRef.current) return;
+        if (!previewCanvasRef.current) return;
 
-      const previewContext = previewCanvasRef.current.getContext("2d");
-      if (!previewContext) return;
+        const previewContext = previewCanvasRef.current.getContext("2d");
+        if (!previewContext) return;
 
-      previewCanvasRef.current.width = exportCanvas.width;
-      previewCanvasRef.current.height = exportCanvas.height;
-      previewContext.drawImage(exportCanvas, 0, 0);
+        previewCanvasRef.current.width = exportCanvas.width;
+        previewCanvasRef.current.height = exportCanvas.height;
+        previewContext.drawImage(exportCanvas, 0, 0);
+      } catch {
+        // Ignore rendering failures caused by invalid or stale in-memory image URLs.
+      }
     };
 
-    sourceImage.src = screenshotImage;
+    void renderPreview();
+
+    return () => {
+      cancelled = true;
+    };
   }, [
     backgroundColor,
+    backgroundImage,
+    backgroundImageOffsetX,
+    backgroundImageOffsetY,
+    backgroundImageRotation,
+    backgroundImageScale,
     bezelColor,
     bezelWidth,
     cameraBridgeEnabled,
@@ -225,6 +269,37 @@ const ScreenshotGenerator = ({
     textLayers,
     textColor,
   ]);
+
+  const loadImageAsset = (source: string) =>
+    new Promise<HTMLImageElement>((resolve, reject) => {
+      const image = new Image();
+      image.onload = () => resolve(image);
+      image.onerror = () => reject(new Error("Image failed to load."));
+      image.src = source;
+    });
+
+  const drawBackgroundImage = (
+    context: CanvasRenderingContext2D,
+    image: HTMLImageElement,
+    canvasWidth: number,
+    canvasHeight: number,
+    scaleFactor: number,
+    rotationDegrees: number,
+    offsetX: number,
+    offsetY: number
+  ) => {
+    const coverScale = Math.max(canvasWidth / image.width, canvasHeight / image.height);
+    const drawWidth = image.width * coverScale * scaleFactor;
+    const drawHeight = image.height * coverScale * scaleFactor;
+
+    context.save();
+    context.imageSmoothingEnabled = true;
+    context.imageSmoothingQuality = "high";
+    context.translate(canvasWidth / 2 + offsetX, canvasHeight / 2 + offsetY);
+    context.rotate((rotationDegrees * Math.PI) / 180);
+    context.drawImage(image, -drawWidth / 2, -drawHeight / 2, drawWidth, drawHeight);
+    context.restore();
+  };
 
   const fillRoundedRect = (
     context: CanvasRenderingContext2D,

@@ -3,6 +3,7 @@
 import { Suspense, useEffect, useMemo, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import ImageUpload from "@/components/ImageUpload";
+import BackgroundImageEditor from "@/components/BackgroundImageEditor";
 import ScreenshotGenerator from "@/components/ScreenshotGenerator";
 import TextLayersEditor from "@/components/TextLayersEditor";
 import useFontLoader, { loadFont } from "@/lib/useFontLoader";
@@ -27,56 +28,9 @@ import {
   inflateDraftFromQuery as mergeSceneFromSearchParams,
   serializeDraftToQuery as sceneToSearchParams,
   stitchDraftCopyState as syncSceneTextLayers,
+  extractBackgroundLayerPatch,
   type CanvasDraft as StudioScene,
 } from "@/lib/rendering/draft-state";
-
-const sliderStyles = `
-  .custom-slider {
-    -webkit-appearance: none;
-    width: 100%;
-    height: 6px;
-    border-radius: 999px;
-    background: rgba(17, 24, 39, 0.12);
-    outline: none;
-    margin: 10px 0;
-  }
-
-  .custom-slider::-webkit-slider-thumb {
-    -webkit-appearance: none;
-    appearance: none;
-    width: 18px;
-    height: 18px;
-    border-radius: 999px;
-    background: #171412;
-    cursor: pointer;
-    border: 2px solid #fffaf2;
-    box-shadow: 0 4px 14px rgba(17, 24, 39, 0.18);
-    margin-top: -6px;
-  }
-
-  .custom-slider::-moz-range-thumb {
-    width: 18px;
-    height: 18px;
-    border-radius: 999px;
-    background: #171412;
-    cursor: pointer;
-    border: 2px solid #fffaf2;
-    box-shadow: 0 4px 14px rgba(17, 24, 39, 0.18);
-  }
-
-  .custom-slider::-webkit-slider-thumb:hover,
-  .custom-slider::-moz-range-thumb:hover {
-    background: #ff6b35;
-  }
-
-  .custom-slider::-webkit-slider-runnable-track,
-  .custom-slider::-moz-range-track {
-    width: 100%;
-    height: 6px;
-    cursor: pointer;
-    border-radius: 999px;
-  }
-`;
 
 type ScenePatch = Partial<StudioScene>;
 
@@ -184,6 +138,7 @@ function EditorContent() {
   const changeFrame = (frame: FrameKey) => {
     setScene((current) => {
       const next = createDefaultScene(frame, current.headline, current.image);
+      const nextBackground = extractBackgroundLayerPatch(current);
       const nextLayers = current.textLayers.map((layer, index) =>
         createTextLayer(frame, {
           ...layer,
@@ -201,6 +156,7 @@ function EditorContent() {
         {
           ...next,
           image: current.image,
+          ...nextBackground,
         },
         nextLayers
       );
@@ -210,6 +166,12 @@ function EditorContent() {
   const resetFrameDefaults = () => {
     setScene((current) => {
       const next = createDefaultScene(current.frame, current.headline, current.image);
+      const backgroundImagePatch = current.backgroundImage
+        ? {
+            backgroundImage: current.backgroundImage,
+            backgroundImageAssetId: current.backgroundImageAssetId,
+          }
+        : {};
       const nextLayers = current.textLayers.map((layer, index) =>
         createTextLayer(current.frame, {
           ...layer,
@@ -227,6 +189,7 @@ function EditorContent() {
         {
           ...next,
           image: current.image,
+          ...backgroundImagePatch,
         },
         nextLayers
       );
@@ -263,8 +226,6 @@ function EditorContent() {
 
   return (
     <>
-      <style dangerouslySetInnerHTML={{ __html: sliderStyles }} />
-
       <div className="grid gap-8 lg:grid-cols-[minmax(0,1.08fr)_minmax(320px,0.92fr)] xl:grid-cols-[minmax(0,1.35fr)_minmax(360px,0.92fr)] 2xl:grid-cols-[minmax(0,1.4fr)_minmax(420px,0.9fr)]">
         <div className="space-y-6">
           <section className="studio-panel px-6 py-6 sm:px-7">
@@ -309,8 +270,9 @@ function EditorContent() {
                       ))}
                     </optgroup>
                   </select>
-                  <div className="pointer-events-none absolute inset-y-0 right-4 flex items-center text-[#171412]">
+                  <div className="pointer-events-none absolute inset-y-0 right-4 flex items-center text-[#221c18]">
                     <svg
+                      suppressHydrationWarning
                       xmlns="http://www.w3.org/2000/svg"
                       className="h-5 w-5"
                       viewBox="0 0 20 20"
@@ -358,6 +320,8 @@ function EditorContent() {
               onImageUpload={(image) => patchScene({ image })}
             />
           </section>
+
+          <BackgroundImageEditor scene={scene} onSceneChange={patchScene} />
 
           <section className="studio-panel px-6 py-6 sm:px-7">
             <p className="studio-section-title">Hazır Stil</p>
@@ -525,6 +489,7 @@ function EditorContent() {
                       </select>
                       <div className="pointer-events-none absolute inset-y-0 right-4 flex items-center">
                         <svg
+                          suppressHydrationWarning
                           xmlns="http://www.w3.org/2000/svg"
                           className="h-5 w-5"
                           viewBox="0 0 20 20"
@@ -583,7 +548,7 @@ function EditorContent() {
 
                       <div className="rounded-[24px] border border-[rgba(17,24,39,0.08)] bg-white/70 px-5 py-4">
                         <label className="flex items-center justify-between gap-4">
-                          <span className="text-sm font-medium text-[#171412]">
+                          <span className="text-sm font-medium text-[#221c18]">
                             Kameraların arasını doldur
                           </span>
                           <input
@@ -594,7 +559,7 @@ function EditorContent() {
                                 cameraBridgeEnabled: event.target.checked,
                               })
                             }
-                            className="h-5 w-5 rounded border-[rgba(17,24,39,0.2)] text-[#171412] focus:ring-[#171412]"
+                            className="h-5 w-5 rounded border-[rgba(71,55,46,0.2)] text-[#221c18] focus:ring-[#221c18]"
                           />
                         </label>
                       </div>
@@ -649,7 +614,7 @@ function EditorContent() {
                 <p className="mb-1 text-[11px] font-bold uppercase tracking-[0.24em] text-white/55">
                   Önizleme
                 </p>
-                <h3 className="mb-0 text-2xl text-[#f8f4ee]">
+                <h3 className="mb-0 text-2xl text-[#f7efe7]">
                   {deviceNames[scene.frame]}
                 </h3>
               </div>
@@ -667,6 +632,11 @@ function EditorContent() {
                   screenshotImage={scene.image}
                   textColor={scene.textColor}
                   backgroundColor={scene.backgroundColor}
+                  backgroundImage={scene.backgroundImage}
+                  backgroundImageScale={scene.backgroundImageScale}
+                  backgroundImageRotation={scene.backgroundImageRotation}
+                  backgroundImageOffsetX={scene.backgroundImageOffsetX}
+                  backgroundImageOffsetY={scene.backgroundImageOffsetY}
                   bezelWidth={scene.bezelWidth}
                   bezelColor={scene.bezelColor}
                   fontFamily={scene.fontFamily}

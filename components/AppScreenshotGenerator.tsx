@@ -4,6 +4,7 @@ import { Suspense, useEffect, useMemo, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import ImageUpload from "@/components/ImageUpload";
 import BackgroundImageEditor from "@/components/BackgroundImageEditor";
+import ObjectLayersEditor from "@/components/ObjectLayersEditor";
 import ScreenshotGenerator from "@/components/ScreenshotGenerator";
 import TextLayersEditor from "@/components/TextLayersEditor";
 import useFontLoader, { loadFont } from "@/lib/useFontLoader";
@@ -26,6 +27,7 @@ import {
   type DraftViewportId as FrameKey,
   viewportHasCameraGeometry as hasFrameCameraCutout,
   inflateDraftFromQuery as mergeSceneFromSearchParams,
+  rehydrateDraftMediaAssets,
   serializeDraftToQuery as sceneToSearchParams,
   stitchDraftCopyState as syncSceneTextLayers,
   extractBackgroundLayerPatch,
@@ -94,6 +96,10 @@ function EditorContent() {
     });
   }, [scene.textLayers]);
 
+  useEffect(() => {
+    setScene((current) => rehydrateDraftMediaAssets(current));
+  }, []);
+
   const querySnapshot = useMemo(() => sceneToSearchParams(scene).toString(), [scene]);
 
   useEffect(() => {
@@ -156,6 +162,7 @@ function EditorContent() {
         {
           ...next,
           image: current.image,
+          objectLayers: current.objectLayers,
           ...nextBackground,
         },
         nextLayers
@@ -189,6 +196,7 @@ function EditorContent() {
         {
           ...next,
           image: current.image,
+          objectLayers: current.objectLayers,
           ...backgroundImagePatch,
         },
         nextLayers
@@ -326,23 +334,24 @@ function EditorContent() {
           <section className="studio-panel px-6 py-6 sm:px-7">
             <p className="studio-section-title">Hazır Stil</p>
             <div className="flex flex-wrap gap-2">
-              {(Object.entries(studioRecipes) as [StudioRecipeKey, (typeof studioRecipes)[StudioRecipeKey]][]).map(
-                ([key, recipe]) => (
-                  <button
-                    key={key}
-                    type="button"
-                    className={`studio-chip transition ${
-                      activeRecipe === key ? "studio-chip-active" : ""
-                    }`}
-                    onClick={() => applyRecipe(key)}
-                  >
-                    <span>{recipe.label}</span>
-                    <span className={activeRecipe === key ? "text-white/70" : "studio-muted"}>
-                      {recipe.note}
-                    </span>
-                  </button>
-                )
-              )}
+              {(Object.entries(studioRecipes) as [
+                StudioRecipeKey,
+                (typeof studioRecipes)[StudioRecipeKey],
+              ][]).map(([key, recipe]) => (
+                <button
+                  key={key}
+                  type="button"
+                  className={`studio-chip transition ${
+                    activeRecipe === key ? "studio-chip-active" : ""
+                  }`}
+                  onClick={() => applyRecipe(key)}
+                >
+                  <span>{recipe.label}</span>
+                  <span className={activeRecipe === key ? "text-white/70" : "studio-muted"}>
+                    {recipe.note}
+                  </span>
+                </button>
+              ))}
             </div>
           </section>
 
@@ -354,6 +363,16 @@ function EditorContent() {
               canvasHeight={deviceDimensions[scene.frame].height}
               onLayersChange={patchTextLayers}
               onLayerFontChange={changeLayerFontFamily}
+            />
+          </section>
+
+          <section className="studio-panel px-6 py-6 sm:px-7">
+            <ObjectLayersEditor
+              frame={scene.frame}
+              layers={scene.objectLayers}
+              canvasWidth={deviceDimensions[scene.frame].width}
+              canvasHeight={deviceDimensions[scene.frame].height}
+              onLayersChange={(nextLayers) => patchScene({ objectLayers: nextLayers })}
             />
           </section>
 
@@ -411,6 +430,24 @@ function EditorContent() {
                   value={scene.frameTop}
                   onChange={(event) =>
                     patchScene({ frameTop: Number.parseInt(event.target.value, 10) })
+                  }
+                  className="custom-slider mt-2 w-full"
+                />
+              </div>
+
+              <div>
+                <label className="text-sm font-medium studio-muted">
+                  Yatay konum {scene.frameOffsetX}px
+                </label>
+                <input
+                  type="range"
+                  min={-Math.round(deviceDimensions[scene.frame].width / 2)}
+                  max={Math.round(deviceDimensions[scene.frame].width / 2)}
+                  value={scene.frameOffsetX}
+                  onChange={(event) =>
+                    patchScene({
+                      frameOffsetX: Number.parseInt(event.target.value, 10),
+                    })
                   }
                   className="custom-slider mt-2 w-full"
                 />
@@ -637,6 +674,12 @@ function EditorContent() {
                   backgroundImageRotation={scene.backgroundImageRotation}
                   backgroundImageOffsetX={scene.backgroundImageOffsetX}
                   backgroundImageOffsetY={scene.backgroundImageOffsetY}
+                  objectLayers={scene.objectLayers}
+                  onObjectLayersChange={(nextLayers) =>
+                    patchScene({ objectLayers: nextLayers })
+                  }
+                  onTextLayersChange={patchTextLayers}
+                  onFramePositionChange={(patch) => patchScene(patch)}
                   bezelWidth={scene.bezelWidth}
                   bezelColor={scene.bezelColor}
                   fontFamily={scene.fontFamily}
@@ -644,6 +687,7 @@ function EditorContent() {
                   fontWeight={scene.fontWeight}
                   headlineTop={scene.headlineTop}
                   frameTop={scene.frameTop}
+                  frameOffsetX={scene.frameOffsetX}
                   frameScale={scene.frameScale}
                   cornerRadius={scene.cornerRadius}
                   cameraMode={scene.cameraMode}

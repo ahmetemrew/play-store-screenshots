@@ -56,7 +56,7 @@ export default function BackgroundImageEditor({
     setError(null);
 
     if (!selectedFile.type.startsWith("image/")) {
-      setError("Arkaplan icin yalnizca gorsel dosyalari yukleyin.");
+      setError("Arkaplan için yalnızca görsel dosyaları yükleyin.");
       return;
     }
 
@@ -66,7 +66,7 @@ export default function BackgroundImageEditor({
       const result = event.target?.result;
 
       if (typeof result !== "string") {
-        setError("Arkaplan gorseli okunamadi.");
+        setError("Arkaplan görseli okunamadı.");
         return;
       }
 
@@ -110,10 +110,10 @@ export default function BackgroundImageEditor({
     <section className="studio-panel px-6 py-6 sm:px-7">
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div>
-          <p className="studio-section-title">Arkaplan gorseli</p>
+          <p className="studio-section-title">Arkaplan görseli</p>
           <p className="mb-0 text-sm studio-muted">
-            Renk dolgusunun ustune arkaplan gorseli yerlestirin ve tum tuvali
-            dolduracak sekilde konumlayin.
+            Renk dolgusunun üstüne arkaplan görseli yerleştirin ve tüm tuvali
+            dolduracak şekilde konumlayın.
           </p>
         </div>
 
@@ -123,7 +123,7 @@ export default function BackgroundImageEditor({
             className="studio-button studio-button-secondary"
             onClick={onApplyToAll}
           >
-            Tum kartlara uygula
+            Tüm kartlara uygula
           </button>
         )}
       </div>
@@ -148,12 +148,12 @@ export default function BackgroundImageEditor({
                 <div className="overflow-hidden rounded-[20px] border border-[rgba(71,55,46,0.08)] bg-[#f6f0e8]">
                   <img
                     src={scene.backgroundImage}
-                    alt="Arkaplan onizlemesi"
+                    alt="Arkaplan önizlemesi"
                     className="h-[150px] w-full object-cover"
                   />
                 </div>
                 <p className="mb-0 text-xs font-semibold uppercase tracking-[0.18em] text-[#221c18]">
-                  Arkaplani degistir
+                  Arkaplanı değiştir
                 </p>
               </div>
             ) : (
@@ -176,10 +176,10 @@ export default function BackgroundImageEditor({
                   </svg>
                 </div>
                 <p className="mb-0 text-sm font-semibold text-[#221c18]">
-                  Arkaplan gorseli sec
+                  Arkaplan görseli seç
                 </p>
                 <p className="mb-0 mt-2 text-xs studio-muted">
-                  PNG, JPEG veya diger gorsel formatlarini kullanabilirsiniz.
+                  PNG, JPEG veya diğer görsel formatlarını kullanabilirsiniz.
                 </p>
               </>
             )}
@@ -187,7 +187,7 @@ export default function BackgroundImageEditor({
 
           {(fileLabel || scene.backgroundImage) && !error && (
             <div className="rounded-full border border-[rgba(71,55,46,0.08)] bg-white/70 px-4 py-2 text-xs font-medium text-[#221c18]">
-              {fileLabel || "Arkaplan gorseli aktif"}
+              {fileLabel || "Arkaplan görseli aktif"}
             </div>
           )}
 
@@ -201,7 +201,7 @@ export default function BackgroundImageEditor({
         <div className="grid gap-5 md:grid-cols-2">
           <div>
             <label className="text-sm font-medium studio-muted">
-              Olcek {scene.backgroundImageScale.toFixed(2)}x
+              Ölçek {scene.backgroundImageScale.toFixed(2)}x
             </label>
             <input
               type="range"
@@ -221,7 +221,7 @@ export default function BackgroundImageEditor({
 
           <div>
             <label className="text-sm font-medium studio-muted">
-              Aci {scene.backgroundImageRotation.toFixed(0)}°
+              Açı {scene.backgroundImageRotation.toFixed(0)}°
             </label>
             <input
               type="range"
@@ -279,14 +279,14 @@ export default function BackgroundImageEditor({
             />
           </div>
 
-          <div className="md:col-span-2 flex flex-wrap gap-3">
+          <div className="flex flex-wrap gap-3 md:col-span-2">
             <button
               type="button"
               className="studio-button studio-button-secondary"
               onClick={resetPlacement}
               disabled={!scene.backgroundImage}
             >
-              Konumu sifirla
+              Konumu sıfırla
             </button>
             <button
               type="button"
@@ -294,7 +294,7 @@ export default function BackgroundImageEditor({
               onClick={clearBackgroundImage}
               disabled={!scene.backgroundImage}
             >
-              Arkaplani kaldir
+              Arkaplanı kaldır
             </button>
           </div>
         </div>

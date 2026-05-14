@@ -41,18 +41,18 @@ export const describeCaptureExpectation = (candidate: string) => {
   const label = resolveViewportLabel(candidate);
 
   if (!blueprint || !exportSize || !label) {
-    return "PNG veya JPEG ekran goruntusu yukleyin.";
+    return "PNG veya JPEG ekran görüntüsü yükleyin.";
   }
 
   if (blueprint.flexibleSource && !blueprint.portraitOnlySource) {
-    return `${label} icin her boyutta PNG veya JPEG kabul edilir.`;
+    return `${label} için her boyutta PNG veya JPEG kabul edilir.`;
   }
 
   if (blueprint.portraitOnlySource) {
-    return `${label} icin dikey PNG veya JPEG kullanin. Cikti ${exportSize.width} x ${exportSize.height} px olur.`;
+    return `${label} için dikey PNG veya JPEG kullanın. Çıktı ${exportSize.width} x ${exportSize.height} px olur.`;
   }
 
-  return `${label} icin gerekli olcu ${exportSize.width} x ${exportSize.height} px.`;
+  return `${label} için gerekli ölçü ${exportSize.width} x ${exportSize.height} px.`;
 };
 
 export const inspectInboundCapture = ({
@@ -67,7 +67,7 @@ export const inspectInboundCapture = ({
   if (!blueprint || !exportSize || !label) {
     return {
       isValid: false,
-      error: "Gecersiz cihaz secimi. Cihazi yeniden secip tekrar deneyin.",
+      error: "Geçersiz cihaz seçimi. Cihazı yeniden seçip tekrar deneyin.",
     };
   }
 
@@ -79,7 +79,7 @@ export const inspectInboundCapture = ({
     if (height < width) {
       return {
         isValid: false,
-        error: "Android ciktilari icin dikey PNG veya JPEG yukleyin.",
+        error: "Android çıktıları için dikey PNG veya JPEG yükleyin.",
       };
     }
 
@@ -89,14 +89,14 @@ export const inspectInboundCapture = ({
     if (shortEdge < MIN_SOURCE_EDGE) {
       return {
         isValid: false,
-        error: `Gorsel cok kucuk. Kisa kenar en az ${MIN_SOURCE_EDGE} px olmali.`,
+        error: `Görsel çok küçük. Kısa kenar en az ${MIN_SOURCE_EDGE} px olmalı.`,
       };
     }
 
     if (longEdge > MAX_SOURCE_EDGE) {
       return {
         isValid: false,
-        error: `Gorsel cok buyuk. Uzun kenar en fazla ${MAX_SOURCE_EDGE} px olmali.`,
+        error: `Görsel çok büyük. Uzun kenar en fazla ${MAX_SOURCE_EDGE} px olmalı.`,
       };
     }
 
@@ -106,7 +106,7 @@ export const inspectInboundCapture = ({
   if (width !== exportSize.width || height !== exportSize.height) {
     return {
       isValid: false,
-      error: `${label} icin gorsel boyutu ${exportSize.width} x ${exportSize.height} px olmali.`,
+      error: `${label} için görsel boyutu ${exportSize.width} x ${exportSize.height} px olmalı.`,
     };
   }
 

@@ -97,8 +97,7 @@ const ImageUpload = ({ frameKey, onImageUpload }: ImageUploadProps) => {
     }
   };
 
-  const dimensions =
-    deviceDimensions[frameKey as keyof typeof deviceDimensions];
+  const dimensions = deviceDimensions[frameKey as keyof typeof deviceDimensions];
   const isCustomFrame = isCustomDeviceType(frameKey);
 
   return (
@@ -108,8 +107,8 @@ const ImageUpload = ({ frameKey, onImageUpload }: ImageUploadProps) => {
           dragActive
             ? "border-[#c46e4d] bg-[#f6ebe3]"
             : error
-            ? "border-red-300 bg-red-50"
-            : "border-[rgba(17,24,39,0.12)] bg-white/60"
+              ? "border-red-300 bg-red-50"
+              : "border-[rgba(17,24,39,0.12)] bg-white/60"
         }`}
         onClick={openPicker}
         onDragEnter={handleDragEnter}

@@ -61,7 +61,7 @@ export default function TextLayersEditor({
   return (
     <div className="space-y-5">
       <div className="flex items-center justify-between gap-4">
-        <p className="studio-section-title mb-0">Yazı katmanları</p>
+        <p className="mb-0 studio-section-title">Yazı katmanları</p>
         <button type="button" className="studio-button" onClick={addLayer}>
           Yazı bloğu ekle
         </button>

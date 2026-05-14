@@ -3,6 +3,7 @@
 import { useState } from "react";
 import ImageUpload from "@/components/ImageUpload";
 import BackgroundImageEditor from "@/components/BackgroundImageEditor";
+import ObjectLayersEditor from "@/components/ObjectLayersEditor";
 import TextLayersEditor from "@/components/TextLayersEditor";
 import {
   VIEWPORT_EXPORT_DIMENSIONS as deviceDimensions,
@@ -22,6 +23,7 @@ type BulkCardEditorPanelProps = {
   scene: StudioScene;
   onSceneChange: (patch: Partial<StudioScene>) => void;
   onTextLayersChange: (nextLayers: StudioScene["textLayers"]) => void;
+  onObjectLayersChange: (nextLayers: StudioScene["objectLayers"]) => void;
   onLayerFontFamilyChange: (layerId: string, fontFamily: string) => void;
   onImageUpload: (image: string, fileName?: string) => void;
   onApplyBackgroundToAll?: () => void;
@@ -32,6 +34,7 @@ export default function BulkCardEditorPanel({
   scene,
   onSceneChange,
   onTextLayersChange,
+  onObjectLayersChange,
   onLayerFontFamilyChange,
   onImageUpload,
   onApplyBackgroundToAll,
@@ -99,10 +102,7 @@ export default function BulkCardEditorPanel({
 
         <section className="studio-panel px-6 py-6 sm:px-7">
           <p className="studio-section-title">Görsel</p>
-          <ImageUpload
-            frameKey={scene.frame}
-            onImageUpload={onImageUpload}
-          />
+          <ImageUpload frameKey={scene.frame} onImageUpload={onImageUpload} />
         </section>
 
         <BackgroundImageEditor
@@ -116,7 +116,7 @@ export default function BulkCardEditorPanel({
           <div className="flex flex-wrap gap-2">
             {(Object.entries(studioRecipes) as [
               StudioRecipeKey,
-              (typeof studioRecipes)[StudioRecipeKey]
+              (typeof studioRecipes)[StudioRecipeKey],
             ][]).map(([key, recipe]) => (
               <button
                 key={key}
@@ -143,6 +143,16 @@ export default function BulkCardEditorPanel({
             canvasHeight={deviceDimensions[scene.frame].height}
             onLayersChange={onTextLayersChange}
             onLayerFontChange={onLayerFontFamilyChange}
+          />
+        </section>
+
+        <section className="studio-panel px-6 py-6 sm:px-7">
+          <ObjectLayersEditor
+            frame={scene.frame}
+            layers={scene.objectLayers}
+            canvasWidth={deviceDimensions[scene.frame].width}
+            canvasHeight={deviceDimensions[scene.frame].height}
+            onLayersChange={onObjectLayersChange}
           />
         </section>
 
@@ -204,6 +214,24 @@ export default function BulkCardEditorPanel({
                 value={scene.frameTop}
                 onChange={(event) =>
                   onSceneChange({ frameTop: Number.parseInt(event.target.value, 10) })
+                }
+                className="custom-slider mt-2 w-full"
+              />
+            </div>
+
+            <div>
+              <label className="text-sm font-medium studio-muted">
+                Yatay konum {scene.frameOffsetX}px
+              </label>
+              <input
+                type="range"
+                min={-Math.round(deviceDimensions[scene.frame].width / 2)}
+                max={Math.round(deviceDimensions[scene.frame].width / 2)}
+                value={scene.frameOffsetX}
+                onChange={(event) =>
+                  onSceneChange({
+                    frameOffsetX: Number.parseInt(event.target.value, 10),
+                  })
                 }
                 className="custom-slider mt-2 w-full"
               />

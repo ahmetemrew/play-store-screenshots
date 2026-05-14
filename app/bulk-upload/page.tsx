@@ -17,6 +17,7 @@ import {
   extractLeadCaption as getScenePrimaryText,
   extractBackgroundLayerPatch,
   inflateDraftFromQuery as mergeSceneFromSearchParams,
+  rehydrateDraftMediaAssets,
   serializeDraftToQuery as sceneToSearchParams,
   type CanvasDraft as StudioScene,
   stitchDraftCopyState as syncSceneTextLayers,
@@ -45,6 +46,9 @@ const sanitizeFileBaseName = (value: string) =>
     .replace(/\s+/g, " ")
     .slice(0, 120);
 
+const cloneObjectLayers = (layers: StudioScene["objectLayers"]) =>
+  layers.map((layer) => ({ ...layer }));
+
 const cloneSceneForCard = (
   baseScene: StudioScene,
   headline = baseScene.headline,
@@ -62,6 +66,7 @@ const cloneSceneForCard = (
       ...baseScene,
       headline,
       image,
+      objectLayers: cloneObjectLayers(baseScene.objectLayers),
     },
     nextLayers
   );
@@ -81,9 +86,17 @@ const createBatchCard = (
 
 type CardPreviewProps = {
   card: BatchCard;
+  onObjectLayersChange: (nextLayers: StudioScene["objectLayers"]) => void;
+  onTextLayersChange: (nextLayers: StudioScene["textLayers"]) => void;
+  onFramePositionChange: (patch: Pick<StudioScene, "frameTop" | "frameOffsetX">) => void;
 };
 
-function CardPreview({ card }: CardPreviewProps) {
+function CardPreview({
+  card,
+  onObjectLayersChange,
+  onTextLayersChange,
+  onFramePositionChange,
+}: CardPreviewProps) {
   const outputSize = deviceDimensions[card.scene.frame];
 
   return (
@@ -117,6 +130,9 @@ function CardPreview({ card }: CardPreviewProps) {
               backgroundImageRotation={card.scene.backgroundImageRotation}
               backgroundImageOffsetX={card.scene.backgroundImageOffsetX}
               backgroundImageOffsetY={card.scene.backgroundImageOffsetY}
+              objectLayers={card.scene.objectLayers}
+              onObjectLayersChange={onObjectLayersChange}
+              onTextLayersChange={onTextLayersChange}
               bezelWidth={card.scene.bezelWidth}
               bezelColor={card.scene.bezelColor}
               fontFamily={card.scene.fontFamily}
@@ -124,6 +140,8 @@ function CardPreview({ card }: CardPreviewProps) {
               fontWeight={card.scene.fontWeight}
               headlineTop={card.scene.headlineTop}
               frameTop={card.scene.frameTop}
+              frameOffsetX={card.scene.frameOffsetX}
+              onFramePositionChange={onFramePositionChange}
               frameScale={card.scene.frameScale}
               cornerRadius={card.scene.cornerRadius}
               cameraMode={card.scene.cameraMode}
@@ -174,6 +192,9 @@ function BulkEditor() {
     createBatchCard(initialScene, initialScene.headline, initialScene.image),
   ]);
   const [openEditors, setOpenEditors] = useState<Record<string, boolean>>({});
+  const [revealedEditors, setRevealedEditors] = useState<Record<string, boolean>>(
+    {}
+  );
   const [hasImportedImages, setHasImportedImages] = useState(
     Boolean(initialScene.image)
   );
@@ -185,10 +206,18 @@ function BulkEditor() {
   useFontLoader(["Inter", "DM Sans", "Outfit", "JetBrains Mono"]);
 
   useEffect(() => {
+    setTemplateScene((current) => rehydrateDraftMediaAssets(current));
+    setCards((current) =>
+      current.map((card) => ({
+        ...card,
+        scene: rehydrateDraftMediaAssets(card.scene),
+      }))
+    );
+  }, []);
+
+  useEffect(() => {
     const handleBeforeUnload = (event: BeforeUnloadEvent) => {
-      if (
-        cards.some((card) => card.scene.image || getScenePrimaryText(card.scene))
-      ) {
+      if (cards.some((card) => card.scene.image || getScenePrimaryText(card.scene))) {
         event.preventDefault();
         const message = "Kaydedilmemiş değişiklikler kaybolur.";
         event.returnValue = message;
@@ -231,6 +260,25 @@ function BulkEditor() {
           ? {
               ...card,
               scene: syncSceneTextLayers(card.scene, nextLayers),
+            }
+          : card
+      )
+    );
+  };
+
+  const patchCardObjectLayers = (
+    id: string,
+    nextLayers: StudioScene["objectLayers"]
+  ) => {
+    setCards((current) =>
+      current.map((card) =>
+        card.id === id
+          ? {
+              ...card,
+              scene: {
+                ...card.scene,
+                objectLayers: nextLayers,
+              },
             }
           : card
       )
@@ -350,6 +398,7 @@ function BulkEditor() {
             {
               ...templateScene,
               image: card.scene.image,
+              objectLayers: cloneObjectLayers(templateScene.objectLayers),
             },
             nextLayers
           ),
@@ -359,18 +408,65 @@ function BulkEditor() {
   };
 
   const toggleCardEditor = (id: string) => {
-    setOpenEditors((current) => {
-      const isOpen = current[id] ?? true;
-      return {
+    const nextIsOpen = !(openEditors[id] ?? false);
+
+    if (nextIsOpen) {
+      setRevealedEditors((current) => ({
         ...current,
-        [id]: !isOpen,
-      };
-    });
+        [id]: true,
+      }));
+    }
+
+    setOpenEditors((current) => ({
+      ...current,
+      [id]: nextIsOpen,
+    }));
+  };
+
+  const openCardEditor = (id: string) => {
+    setRevealedEditors((current) => ({
+      ...current,
+      [id]: true,
+    }));
+    setOpenEditors((current) => ({
+      ...current,
+      [id]: true,
+    }));
+  };
+
+  const toggleAllEditors = () => {
+    if (cards.length === 0) return;
+
+    const shouldOpen = !cards.every((card) => openEditors[card.id] ?? false);
+    const nextOpenState = Object.fromEntries(
+      cards.map((card) => [card.id, shouldOpen])
+    );
+
+    setOpenEditors((current) => ({
+      ...current,
+      ...nextOpenState,
+    }));
+
+    if (shouldOpen) {
+      const nextRevealedState = Object.fromEntries(
+        cards.map((card) => [card.id, true])
+      );
+
+      setRevealedEditors((current) => ({
+        ...current,
+        ...nextRevealedState,
+      }));
+    }
   };
 
   const removeCard = (id: string) => {
     setCards((current) => current.filter((card) => card.id !== id));
     setOpenEditors((current) => {
+      const next = { ...current };
+      delete next[id];
+      return next;
+    });
+    setRevealedEditors((current) => {
       const next = { ...current };
       delete next[id];
       return next;
@@ -550,6 +646,8 @@ function BulkEditor() {
   const completedCards = cards.filter(
     (card) => card.scene.image && getScenePrimaryText(card.scene).trim()
   ).length;
+  const allEditorsOpen =
+    cards.length > 0 && cards.every((card) => openEditors[card.id] ?? false);
 
   return (
     <div className="min-h-screen px-4 py-6 sm:px-6 lg:px-8">
@@ -564,6 +662,16 @@ function BulkEditor() {
             </div>
 
             <div className="flex flex-wrap gap-3">
+              <button
+                type="button"
+                className="studio-button studio-button-secondary"
+                onClick={toggleAllEditors}
+                disabled={cards.length === 0}
+              >
+                {allEditorsOpen
+                  ? "Tüm düzenleyicileri kapa"
+                  : "Tüm düzenleyicileri aç"}
+              </button>
               <button
                 type="button"
                 className="studio-button studio-button-secondary"
@@ -583,8 +691,9 @@ function BulkEditor() {
             <div>
               <p className="studio-section-title">Çoklu yükleme</p>
               <p className="mb-0 text-sm studio-muted">
-                Tekli moddaki ayarlar yeni kartlara aynen aktarılır. Görselleri toplu
-                seçtiğinde her kart hazır düzenlemesiyle açılır.
+                Tekli moddaki ayarlar yeni kartlara aynen aktarılır. Görselleri
+                toplu seçtiğinde kartlar kapalı gelir; istediklerini tek tek ya da
+                topluca açabilirsin.
               </p>
             </div>
           </div>
@@ -643,7 +752,8 @@ function BulkEditor() {
 
         <section className="space-y-6">
           {cards.map((card, index) => {
-            const editorOpen = openEditors[card.id] ?? true;
+            const editorOpen = openEditors[card.id] ?? false;
+            const editorWasOpened = revealedEditors[card.id] ?? false;
 
             return (
               <article
@@ -692,6 +802,9 @@ function BulkEditor() {
                         onTextLayersChange={(nextLayers) =>
                           patchCardTextLayers(card.id, nextLayers)
                         }
+                        onObjectLayersChange={(nextLayers) =>
+                          patchCardObjectLayers(card.id, nextLayers)
+                        }
                         onLayerFontFamilyChange={(layerId, fontFamily) =>
                           changeCardLayerFontFamily(card.id, layerId, fontFamily)
                         }
@@ -704,14 +817,37 @@ function BulkEditor() {
                         onReset={() => resetCardScene(card.id)}
                       />
                     ) : (
-                      <div className="rounded-[24px] border border-[rgba(17,24,39,0.08)] bg-white/70 px-5 py-6 text-sm studio-muted">
-                        Bu kartın düzenleyicisi kapalı. Tekrar açtığında tüm katman
-                        ayarları kaldığı yerden devam eder.
+                      <div className="flex min-h-[420px] items-center justify-center rounded-[24px] border border-[rgba(17,24,39,0.08)] bg-white/70 px-5 py-6">
+                        {editorWasOpened ? (
+                          <div className="max-w-[360px] text-center text-sm studio-muted">
+                            Bu kartın düzenleyicisi kapalı. Tekrar açtığında tüm
+                            katman ayarları kaldığı yerden devam eder.
+                          </div>
+                        ) : (
+                          <button
+                            type="button"
+                            className="studio-button"
+                            onClick={() => openCardEditor(card.id)}
+                          >
+                            Düzenleyiciyi aç
+                          </button>
+                        )}
                       </div>
                     )}
                   </div>
 
-                  <CardPreview card={card} />
+                  <CardPreview
+                    card={card}
+                    onObjectLayersChange={(nextLayers) =>
+                      patchCardObjectLayers(card.id, nextLayers)
+                    }
+                    onTextLayersChange={(nextLayers) =>
+                      patchCardTextLayers(card.id, nextLayers)
+                    }
+                    onFramePositionChange={(patch) =>
+                      patchCardScene(card.id, patch)
+                    }
+                  />
                 </div>
               </article>
             );
@@ -743,7 +879,7 @@ function BulkEditor() {
 
             <div className="grid gap-4 lg:min-w-[360px]">
               <div>
-                <label className="mb-2 block text-sm font-medium text-white/80">
+                <label className="mb-2 block text-sm font-medium text-[#f7efe7]">
                   Dışa aktarma biçimi
                 </label>
                 <div className="relative">
@@ -752,7 +888,8 @@ function BulkEditor() {
                     onChange={(event) =>
                       setExportMode(event.target.value as "zip" | "files")
                     }
-                    className="studio-field appearance-none bg-white/90 pr-12"
+                    className="studio-field appearance-none border-white/0 bg-[#fff8f2] pr-12 text-[#221c18] shadow-[0_10px_24px_rgba(0,0,0,0.12)]"
+                    style={{ colorScheme: "light" }}
                   >
                     <option value="zip">ZIP arşivi</option>
                     <option value="files">Fotoğrafları ayrı indir</option>
@@ -775,15 +912,16 @@ function BulkEditor() {
                 </div>
               </div>
 
-              <label className="flex items-center justify-between gap-4 rounded-[22px] border border-white/10 bg-white/[0.05] px-4 py-4">
-                <span className="text-sm text-white/80">
+              <label className="flex items-center justify-between gap-4 rounded-[22px] border border-[rgba(255,248,242,0.16)] bg-[#fff8f2] px-4 py-4 text-[#221c18] shadow-[0_10px_24px_rgba(0,0,0,0.12)]">
+                <span className="text-sm text-[#221c18]">
                   Yüklenen dosya adını dışa aktarımda koru
                 </span>
                 <input
                   type="checkbox"
                   checked={preserveOriginalNames}
                   onChange={(event) => setPreserveOriginalNames(event.target.checked)}
-                  className="h-5 w-5 rounded border-white/20 text-[#221c18] focus:ring-white/20"
+                  className="h-5 w-5 rounded border-[rgba(71,55,46,0.18)] text-[#221c18] focus:ring-[rgba(196,110,77,0.2)]"
+                  style={{ colorScheme: "light" }}
                 />
               </label>
 

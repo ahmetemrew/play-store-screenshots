@@ -1,7 +1,7 @@
 export const VISUAL_TREATMENT_LIBRARY = {
   editorial: {
     label: "Editoryal",
-    note: "Yumusak ve premium",
+    note: "Yumuşak ve premium",
     backgroundColor: "#ead8cb",
     textColor: "#221c18",
     bezelColor: "#221c18",
@@ -10,7 +10,7 @@ export const VISUAL_TREATMENT_LIBRARY = {
     borderRadius: 44,
   },
   signal: {
-    label: "Canli",
+    label: "Canlı",
     note: "Net ve parlak",
     backgroundColor: "#d8e6dc",
     textColor: "#24312b",
@@ -21,7 +21,7 @@ export const VISUAL_TREATMENT_LIBRARY = {
   },
   nocturne: {
     label: "Gece",
-    note: "Koyu ve kontrastli",
+    note: "Koyu ve kontrastlı",
     backgroundColor: "#2b2320",
     textColor: "#f7efe7",
     bezelColor: "#f7efe7",

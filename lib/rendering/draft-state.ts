@@ -24,10 +24,25 @@ export type CaptionToken = {
   align: CopyDock;
 };
 
+export type ObjectLayerToken = {
+  id: string;
+  assetId: string | null;
+  image: string | null;
+  name: string;
+  x: number;
+  y: number;
+  scale: number;
+  rotation: number;
+  opacity: number;
+  baseWidth: number;
+  baseHeight: number;
+};
+
 export type CanvasDraft = {
   frame: DraftViewportId;
   headline: string;
   textLayers: CaptionToken[];
+  objectLayers: ObjectLayerToken[];
   image: string | null;
   textColor: string;
   backgroundColor: string;
@@ -44,6 +59,7 @@ export type CanvasDraft = {
   fontWeight: string;
   headlineTop: number;
   frameTop: number;
+  frameOffsetX: number;
   frameScale: number;
   cornerRadius: number;
   cameraMode: "single" | "double";
@@ -75,7 +91,15 @@ const BACKGROUND_IMAGE_DEFAULTS = {
   offsetX: 0,
   offsetY: 0,
 } as const;
+const OBJECT_LAYER_DEFAULTS = {
+  scale: 1,
+  rotation: 0,
+  opacity: 1,
+  baseWidth: 240,
+  baseHeight: 240,
+} as const;
 const BACKGROUND_IMAGE_STORAGE_PREFIX = "launchcanvas.background-image";
+const OBJECT_IMAGE_STORAGE_PREFIX = "launchcanvas.object-image";
 
 const makeCaptionTokenId = () => {
   if (typeof crypto !== "undefined" && "randomUUID" in crypto) {
@@ -83,6 +107,14 @@ const makeCaptionTokenId = () => {
   }
 
   return `copy-${Math.random().toString(36).slice(2, 10)}`;
+};
+
+const makeObjectLayerId = () => {
+  if (typeof crypto !== "undefined" && "randomUUID" in crypto) {
+    return `object-${crypto.randomUUID().slice(0, 8)}`;
+  }
+
+  return `object-${Math.random().toString(36).slice(2, 10)}`;
 };
 
 const makeBackgroundImageAssetId = () => {
@@ -180,6 +212,84 @@ const normalizeCaptionTokens = (
   }
 };
 
+const normalizeObjectTokens = (
+  raw: string | null,
+  viewportId: DraftViewportId,
+  hydrateMedia: boolean
+): ObjectLayerToken[] => {
+  if (!raw) return [];
+
+  try {
+    const parsed = JSON.parse(raw);
+    if (!Array.isArray(parsed)) return [];
+
+    const normalized: ObjectLayerToken[] = [];
+
+    parsed.forEach((entry, index) => {
+      if (!entry || typeof entry !== "object") return;
+
+      const candidate = entry as Partial<ObjectLayerToken>;
+      const assetId =
+        typeof candidate.assetId === "string" && candidate.assetId.trim() !== ""
+          ? candidate.assetId
+          : null;
+      const image = hydrateMedia ? readObjectImageAsset(assetId) : null;
+      if (hydrateMedia && assetId && !image) return;
+
+      const seed = spawnObjectLayer(viewportId, {});
+
+      normalized.push({
+        id:
+          typeof candidate.id === "string" && candidate.id.trim() !== ""
+            ? candidate.id
+            : `object-${index + 1}`,
+        assetId,
+        image,
+        name:
+          typeof candidate.name === "string" && candidate.name.trim() !== ""
+            ? candidate.name
+            : `Obje ${index + 1}`,
+        x:
+          typeof candidate.x === "number" && Number.isFinite(candidate.x)
+            ? candidate.x
+            : seed.x,
+        y:
+          typeof candidate.y === "number" && Number.isFinite(candidate.y)
+            ? candidate.y
+            : seed.y,
+        scale:
+          typeof candidate.scale === "number" && Number.isFinite(candidate.scale)
+            ? candidate.scale
+            : OBJECT_LAYER_DEFAULTS.scale,
+        rotation:
+          typeof candidate.rotation === "number" &&
+          Number.isFinite(candidate.rotation)
+            ? candidate.rotation
+            : OBJECT_LAYER_DEFAULTS.rotation,
+        opacity:
+          typeof candidate.opacity === "number" &&
+          Number.isFinite(candidate.opacity)
+            ? candidate.opacity
+            : OBJECT_LAYER_DEFAULTS.opacity,
+        baseWidth:
+          typeof candidate.baseWidth === "number" &&
+          Number.isFinite(candidate.baseWidth)
+            ? candidate.baseWidth
+            : OBJECT_LAYER_DEFAULTS.baseWidth,
+        baseHeight:
+          typeof candidate.baseHeight === "number" &&
+          Number.isFinite(candidate.baseHeight)
+            ? candidate.baseHeight
+            : OBJECT_LAYER_DEFAULTS.baseHeight,
+      });
+    });
+
+    return normalized;
+  } catch {
+    return [];
+  }
+};
+
 export const spawnCaptionToken = (
   viewportId: DraftViewportId,
   overrides: Partial<CaptionToken> = {}
@@ -197,6 +307,27 @@ export const spawnCaptionToken = (
     x: overrides.x ?? Math.round(exportSize.width / 2),
     y: overrides.y ?? starter.textTopDistance,
     align: overrides.align ?? "center",
+  };
+};
+
+export const spawnObjectLayer = (
+  viewportId: DraftViewportId,
+  overrides: Partial<ObjectLayerToken> = {}
+): ObjectLayerToken => {
+  const exportSize = VIEWPORT_EXPORT_DIMENSIONS[viewportId];
+
+  return {
+    id: overrides.id ?? makeObjectLayerId(),
+    assetId: overrides.assetId ?? null,
+    image: overrides.image ?? null,
+    name: overrides.name ?? "",
+    x: overrides.x ?? Math.round(exportSize.width / 2),
+    y: overrides.y ?? Math.round(exportSize.height / 2),
+    scale: overrides.scale ?? OBJECT_LAYER_DEFAULTS.scale,
+    rotation: overrides.rotation ?? OBJECT_LAYER_DEFAULTS.rotation,
+    opacity: overrides.opacity ?? OBJECT_LAYER_DEFAULTS.opacity,
+    baseWidth: overrides.baseWidth ?? OBJECT_LAYER_DEFAULTS.baseWidth,
+    baseHeight: overrides.baseHeight ?? OBJECT_LAYER_DEFAULTS.baseHeight,
   };
 };
 
@@ -232,6 +363,9 @@ export const viewportHasCameraGeometry = (viewportId: DraftViewportId) =>
 const getBackgroundImageStorageKey = (assetId: string) =>
   `${BACKGROUND_IMAGE_STORAGE_PREFIX}.${assetId}`;
 
+const getObjectImageStorageKey = (assetId: string) =>
+  `${OBJECT_IMAGE_STORAGE_PREFIX}.${assetId}`;
+
 export const persistBackgroundImageAsset = (imageDataUrl: string) => {
   const assetId = makeBackgroundImageAssetId();
 
@@ -245,12 +379,30 @@ export const persistBackgroundImageAsset = (imageDataUrl: string) => {
   return assetId;
 };
 
+export const persistObjectImageAsset = (imageDataUrl: string) => {
+  const assetId = makeBackgroundImageAssetId();
+
+  if (typeof window !== "undefined") {
+    window.sessionStorage.setItem(getObjectImageStorageKey(assetId), imageDataUrl);
+  }
+
+  return assetId;
+};
+
 export const readBackgroundImageAsset = (assetId: string | null) => {
   if (!assetId || typeof window === "undefined") {
     return null;
   }
 
   return window.sessionStorage.getItem(getBackgroundImageStorageKey(assetId));
+};
+
+export const readObjectImageAsset = (assetId: string | null) => {
+  if (!assetId || typeof window === "undefined") {
+    return null;
+  }
+
+  return window.sessionStorage.getItem(getObjectImageStorageKey(assetId));
 };
 
 export const extractBackgroundLayerPatch = (
@@ -289,6 +441,7 @@ export const buildCanvasDraft = (
     frame: viewportId,
     headline,
     textLayers: [leadToken],
+    objectLayers: [],
     image,
     textColor: starter.textColor,
     backgroundColor: starter.backgroundColor,
@@ -305,6 +458,7 @@ export const buildCanvasDraft = (
     fontWeight: String(starter.fontWeight),
     headlineTop: starter.textTopDistance,
     frameTop: starter.bezelTopDistance,
+    frameOffsetX: 0,
     frameScale: starter.deviceSizeFactor,
     cornerRadius: starter.borderRadius,
     cameraMode: cameraGeometry?.mode ?? "single",
@@ -320,8 +474,12 @@ export const buildCanvasDraft = (
 
 export const inflateDraftFromQuery = (
   searchParams: QueryShapeReader,
-  fallbackViewport: DraftViewportId = "androidGalaxyS24"
+  fallbackViewport: DraftViewportId = "androidGalaxyS24",
+  options: {
+    hydrateMedia?: boolean;
+  } = {}
 ) => {
+  const hydrateMedia = options.hydrateMedia ?? false;
   const requestedViewport = (searchParams.get("frame") ||
     searchParams.get("deviceType") ||
     fallbackViewport) as DraftViewportId;
@@ -351,6 +509,12 @@ export const inflateDraftFromQuery = (
   const textLayers = normalizeCaptionTokens(searchParams.get("textLayers"), [
     legacyLeadToken,
   ]);
+  const objectLayers = normalizeObjectTokens(
+    searchParams.get("objectLayers"),
+    viewport,
+    hydrateMedia
+  );
+  const backgroundImageAssetId = searchParams.get("backgroundImageAssetId");
 
   const rawCameraMode = searchParams.get("cameraMode");
   const cameraMode =
@@ -364,10 +528,10 @@ export const inflateDraftFromQuery = (
       textColor: legacyLeadToken.color,
       backgroundColor:
         searchParams.get("backgroundColor") || seedDraft.backgroundColor,
-      backgroundImageAssetId: searchParams.get("backgroundImageAssetId"),
-      backgroundImage: readBackgroundImageAsset(
-        searchParams.get("backgroundImageAssetId")
-      ),
+      backgroundImageAssetId,
+      backgroundImage: hydrateMedia
+        ? readBackgroundImageAsset(backgroundImageAssetId)
+        : null,
       backgroundImageScale: readNumericToken(
         searchParams.get("backgroundImageScale"),
         seedDraft.backgroundImageScale,
@@ -400,6 +564,10 @@ export const inflateDraftFromQuery = (
         searchParams.get("frameTop") || searchParams.get("bezelTopDistance"),
         seedDraft.frameTop
       ),
+      frameOffsetX: readNumericToken(
+        searchParams.get("frameOffsetX"),
+        seedDraft.frameOffsetX
+      ),
       frameScale: readNumericToken(
         searchParams.get("frameScale") || searchParams.get("deviceSizeFactor"),
         seedDraft.frameScale,
@@ -431,9 +599,27 @@ export const inflateDraftFromQuery = (
         seedDraft.cameraOffsetY
       ),
       textLayers,
+      objectLayers,
     },
     textLayers
   );
+};
+
+export const rehydrateDraftMediaAssets = (draft: CanvasDraft): CanvasDraft => {
+  const backgroundImage = draft.backgroundImageAssetId
+    ? readBackgroundImageAsset(draft.backgroundImageAssetId)
+    : null;
+
+  const objectLayers = draft.objectLayers.map((layer) => ({
+    ...layer,
+    image: layer.assetId ? readObjectImageAsset(layer.assetId) : null,
+  }));
+
+  return {
+    ...draft,
+    backgroundImage,
+    objectLayers,
+  };
 };
 
 export const serializeDraftToQuery = (draft: CanvasDraft) => {
@@ -443,6 +629,25 @@ export const serializeDraftToQuery = (draft: CanvasDraft) => {
   params.set("frame", normalizedDraft.frame);
   params.set("headline", normalizedDraft.headline);
   params.set("textLayers", JSON.stringify(normalizedDraft.textLayers));
+  params.set(
+    "objectLayers",
+    JSON.stringify(
+      normalizedDraft.objectLayers
+        .filter((layer) => layer.assetId)
+        .map((layer) => ({
+          id: layer.id,
+          assetId: layer.assetId,
+          name: layer.name,
+          x: layer.x,
+          y: layer.y,
+          scale: layer.scale,
+          rotation: layer.rotation,
+          opacity: layer.opacity,
+          baseWidth: layer.baseWidth,
+          baseHeight: layer.baseHeight,
+        }))
+    )
+  );
   params.set("textColor", normalizedDraft.textColor);
   params.set("backgroundColor", normalizedDraft.backgroundColor);
   if (normalizedDraft.backgroundImageAssetId) {
@@ -474,6 +679,7 @@ export const serializeDraftToQuery = (draft: CanvasDraft) => {
   params.set("fontWeight", normalizedDraft.fontWeight);
   params.set("headlineTop", String(normalizedDraft.headlineTop));
   params.set("frameTop", String(normalizedDraft.frameTop));
+  params.set("frameOffsetX", String(normalizedDraft.frameOffsetX));
   params.set("frameScale", String(normalizedDraft.frameScale));
   params.set("cornerRadius", String(normalizedDraft.cornerRadius));
   params.set("cameraMode", normalizedDraft.cameraMode);

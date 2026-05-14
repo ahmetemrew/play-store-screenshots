@@ -19,6 +19,8 @@
 
 # production
 /build
+/release/*
+!/release/LaunchCanvas.exe
 
 # misc
 .DS_Store
